@@ -61,10 +61,11 @@ type SourceFile struct {
 // A Job represents the coverage data from a single run of a test suite.
 type Job struct {
 	RepoToken          *string       `json:"repo_token,omitempty"`
-	ServiceJobId       string        `json:"service_job_id"`
+	ServiceJobID       string        `json:"service_job_id"`
 	ServicePullRequest string        `json:"service_pull_request,omitempty"`
 	ServiceName        string        `json:"service_name"`
 	SourceFiles        []*SourceFile `json:"source_files"`
+	Parallel           bool          `json:"parallel"`
 	Git                *Git          `json:"git,omitempty"`
 	RunAt              time.Time     `json:"run_at"`
 }
@@ -154,17 +155,20 @@ func process() error {
 	//
 	// Initialize Job
 	//
-	var jobId string
-	if travisJobId := os.Getenv("TRAVIS_JOB_ID"); travisJobId != "" {
-		jobId = travisJobId
-	} else if circleCiJobId := os.Getenv("CIRCLE_BUILD_NUM"); circleCiJobId != "" {
-		jobId = circleCiJobId
+
+	var jobID string
+	if travisJobID := os.Getenv("TRAVIS_JOB_ID"); travisJobID != "" {
+		jobID = travisJobID
+	} else if circleCiJobID := os.Getenv("CIRCLE_BUILD_NUM"); circleCiJobID != "" {
+		jobID = circleCiJobID
 	} else {
-		jobId = uuid.New()
+		jobID = uuid.New()
 	}
+
 	if *repotoken == "" {
 		repotoken = nil // remove the entry from json
 	}
+
 	var pullRequest string
 	if prNumber := os.Getenv("CIRCLE_PR_NUMBER"); prNumber != "" {
 		// for Circle CI (pull request from forked repo)
@@ -184,7 +188,7 @@ func process() error {
 	j := Job{
 		RunAt:              time.Now(),
 		RepoToken:          repotoken,
-		ServiceJobId:       jobId,
+		ServiceJobID:       jobID,
 		ServicePullRequest: pullRequest,
 		Git:                collectGitInfo(),
 		SourceFiles:        sourceFiles,
@@ -222,6 +226,7 @@ func process() error {
 
 	params := make(url.Values)
 	params.Set("json", string(b))
+	fmt.Println(string(b))
 	res, err := http.PostForm(*endpoint+"/api/v1/jobs", params)
 	if err != nil {
 		return err
@@ -242,7 +247,7 @@ func process() error {
 	}
 	var response Response
 	if err = json.Unmarshal(bodyBytes, &response); err != nil {
-		return fmt.Errorf("Unable to unmarshal response JSON from coveralls: %s\n%s", err)
+		return fmt.Errorf("Unable to unmarshal response JSON from coveralls: %s\n", err)
 	}
 	if response.Error {
 		return errors.New(response.Message)

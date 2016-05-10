@@ -36,7 +36,7 @@ type Git struct {
 // collectGitInfo runs several git commands to compose a Git object.
 func collectGitInfo() *Git {
 	gitCmds := map[string][]string{
-		"id":      {"rev-parse", "HEAD"},
+		"id":      {"show-ref", "refs/heads/master"},
 		"branch":  {"rev-parse", "--abbrev-ref", "HEAD"},
 		"aname":   {"log", "-1", "--pretty=%aN"},
 		"aemail":  {"log", "-1", "--pretty=%aE"},
@@ -53,7 +53,7 @@ func collectGitInfo() *Git {
 	}
 	for key, args := range gitCmds {
 		if key == "branch" {
-			if envBranch := os.Getenv("GIT_BRANCH"); envBranch != "" {
+			if envBranch := os.Getenv("TRAVIS_BRANCH"); envBranch != "" {
 				results[key] = envBranch
 				continue
 			}
@@ -67,8 +67,18 @@ func collectGitInfo() *Git {
 			}
 			log.Fatalf("%v: %v", err, string(ret))
 		}
+
 		s := string(ret)
-		s = strings.TrimRight(s, "\n")
+		if key == "id" {
+			s = strings.TrimRight(s, "\n")
+			s = strings.Replace(s, "refs/heads/master", "", -1)
+			s = strings.TrimSpace(s)
+			if len(ss) > 1 {
+				results[key] = s
+			}
+		} else {
+			s = strings.TrimRight(s, "\n")
+		}
 		results[key] = s
 	}
 	for _, line := range strings.Split(results["remotes"], "\n") {
