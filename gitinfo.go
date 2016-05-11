@@ -73,7 +73,7 @@ func collectGitInfo() *Git {
 			s = strings.TrimRight(s, "\n")
 			s = strings.Replace(s, "refs/heads/master", "", -1)
 			s = strings.TrimSpace(s)
-			if len(ss) > 1 {
+			if len(s) > 1 {
 				results[key] = s
 			}
 		} else {
