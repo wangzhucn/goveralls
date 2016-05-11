@@ -1,4 +1,4 @@
-goveralls
+goveralls test
 =========
 
 [Go](http://golang.org) integration for [Coveralls.io](http://coveralls.io)
